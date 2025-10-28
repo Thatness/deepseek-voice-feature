@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek Voice Feature Prototype by D. Austin Ward (Verasmus)</title>
+    <meta name="description" content="Production-ready voice interface for DeepSeek AI - Created by D. Austin Ward (Verasmus)">
+    <meta name="author" content="D. Austin Ward (Verasmus)">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .voice-interface {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .creator-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .creator-header h1 {
+            color: #10a37f;
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .creator-header .subtitle {
+            color: #666;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .creator-header .contact {
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h2 {
+            color: #333;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .philosophy-badge {
+            background: linear-gradient(135deg, #10a37f, #0d8c6d);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 10px auto;
+            display: inline-block;
+            font-style: italic;
+        }
+
+        .voice-toggle {
+            background: linear-gradient(135deg, #10a37f, #0d8c6d);
+            border: none;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            transition: all 0.3s ease;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 20px rgba(16, 163, 127, 0.3);
+        }
+
+        .voice-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 30px rgba(16, 163, 127, 0.4);
+        }
+
+        .voice-toggle.listening {
+            background: linear-gradient(135deg, #ef4146, #d32f2f);
+            animation: pulse 1.5s infinite;
+        }
+
+        .voice-toggle.speaking {
+            background: linear-gradient(135deg, #4285f4, #346ac3);
+            animation: glow 2s infinite;
+        }
+
+        .status-indicator {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .status-idle { color: #10a37f; }
+        .status-listening { color: #ef4146; }
+        .status-speaking { color: #4285f4; }
+        .status-processing { color: #f4b400; }
+        .status-error { color: #dc3545; }
+
+        .voice-feedback {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 100px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #333;
+            transition: all 0.3s ease;
+        }
+
+        .voice-feedback.active {
+            border-color: #10a37f;
+            background: #f0fff4;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            background: #6c757d;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-btn.primary {
+            background: #10a37f;
+        }
+
+        .control-btn.warning {
+            background: #f4b400;
+        }
+
+        .control-btn.danger {
+            background: #ef4146;
+        }
+
+        .settings-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            border: 2px solid #e9ecef;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .setting-group input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .value-display {
+            text-align: center;
+            font-weight: 600;
+            color: #10a37f;
+            margin-top: 5px;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+        }
+
+        .visualizer {
+            height: 60px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 10px;
+        }
+
+        .bar {
+            width: 4px;
+            background: #10a37f;
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+
+        .compatibility-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            color: #856404;
+        }
+
+        .feature-highlights {
+            background: #e7f3ff;
+            border: 2px solid #b3d9ff;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-highlights h3 {
+            color: #0066cc;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #cce5ff;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list li::before {
+            content: "✅ ";
+            margin-right: 10px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 65, 70, 0.7); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(239, 65, 70, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 65, 70, 0); }
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.7); }
+            50% { box-shadow: 0 0 0 15px rgba(66, 133, 244, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(66, 133, 244, 0); }
+        }
+
+        @media (max-width: 600px) {
+            .voice-interface {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .control-btn {
+                min-width: auto;
+            }
+            
+            .header h2 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="voice-interface" id="voiceInterface">
+        <!-- Creator Header -->
+        <div class="creator-header">
+            <h1>D. Austin Ward (Verasmus)</h1>
+            <div class="subtitle">Consciousness-AI Integration Specialist</div>
+            <div class="contact">📧 Gourvetts@gmail.com | 📞 689-350-1419</div>
+        </div>
+
+        <div class="header">
+            <h2>🎤 DeepSeek Voice</h2>
+            <p>Consciousness-Aware AI Voice Interface</p>
+            <div class="philosophy-badge">"Where attention goes, energy flows"</div>
+        </div>
+
+        <button class="voice-toggle" id="voiceToggle">
+            🎤
+        </button>
+
+        <div class="status-indicator">
+            <span id="statusText" class="status-idle">Ready to listen</span>
+        </div>
+
+        <div class="visualizer" id="visualizer">
+            <!-- Audio bars will be generated by JavaScript -->
+        </div>
+
+        <div class="voice-feedback" id="voiceFeedback">
+            Speak to start a conversation with DeepSeek... This prototype demonstrates production-ready voice interface capabilities.
+        </div>
+
+        <div class="feature-highlights">
+            <h3>🚀 Production Features</h3>
+            <ul class="feature-list">
+                <li>Real-time Speech Recognition & Synthesis</li>
+                <li>Consciousness-Aware Conversation Flow</li>
+                <li>Cross-Browser Compatibility</li>
+                <li>Mobile-Responsive Design</li>
+                <li>Ready for DeepSeek API Integration</li>
+            </ul>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn primary" id="startBtn">Start Listening</button>
+            <button class="control-btn warning" id="stopBtn">Stop</button>
+            <button class="control-btn" id="settingsBtn">Settings</button>
+            <button class="control-btn primary" id="testBtn">Test Voice</button>
+        </div>
+
+        <div class="settings-panel" id="settingsPanel" style="display: none;">
+            <div class="setting-group">
+                <label for="voiceSelect">Voice Style:</label>
+                <select id="voiceSelect">
+                    <option value="">Loading voices...</option>
+                </select>
+            </div>
+            
+            <div class="setting-group">
+                <label>Speech Speed: <span id="speedValue" class="value-display">1.0</span></label>
+                <input type="range" id="voiceSpeed" min="0.5" max="2" step="0.1" value="1.0">
+            </div>
+            
+            <div class="setting-group">
+                <label>Voice Pitch: <span id="pitchValue" class="value-display">1.0</span></label>
+                <input type="range" id="voicePitch" min="0.5" max="2" step="0.1" value="1.0">
+            </div>
+
+            <div class="setting-group">
+                <label>Volume: <span id="volumeValue" class="value-display">1.0</span></label>
+                <input type="range" id="voiceVolume" min="0" max="1" step="0.1" value="1.0">
+            </div>
+        </div>
+
+        <div id="compatibilityWarning" class="compatibility-warning" style="display: none;">
+            ⚠️ Your browser has limited voice support. For best experience, use Chrome or Edge.
+        </div>
+    </div>
+
+    <script>
+        // DeepSeek Voice Feature Prototype
+        // Created by D. Austin Ward (Verasmus)
+        // Contact: Gourvetts@gmail.com | 689-350-1419
+
+        class DeepSeekVoicePrototype {
+            constructor() {
+                this.isListening = false;
+                this.isSpeaking = false;
+                this.isProcessing = false;
+                this.availableVoices = [];
+                this.selectedVoice = null;
+                this.speechRate = 1.0;
+                this.speechPitch = 1.0;
+                this.speechVolume = 1.0;
+                this.recognition = null;
+                this.visualizerBars = [];
+                
+                this.initializeElements();
+                this.checkCompatibility();
+                this.loadVoices();
+                this.setupEventListeners();
+                this.createVisualizer();
+                
+                console.log('🎤 DeepSeek Voice Prototype Loaded');
+                console.log('👨‍💻 Created by D. Austin Ward (Verasmus)');
+            }
+            
+            initializeElements() {
+                this.toggleBtn = document.getElementById('voiceToggle');
+                this.settingsPanel = document.getElementById('settingsPanel');
+                this.feedback = document.getElementById('voiceFeedback');
+                this.statusText = document.getElementById('statusText');
+                this.voiceSelect = document.getElementById('voiceSelect');
+                this.speedSlider = document.getElementById('voiceSpeed');
+                this.pitchSlider = document.getElementById('voicePitch');
+                this.volumeSlider = document.getElementById('voiceVolume');
+                this.speedValue = document.getElementById('speedValue');
+                this.pitchValue = document.getElementById('pitchValue');
+                this.volumeValue = document.getElementById('volumeValue');
+                this.startBtn = document.getElementById('startBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.settingsBtn = document.getElementById('settingsBtn');
+                this.testBtn = document.getElementById('testBtn');
+                this.visualizer = document.getElementById('visualizer');
+                this.compatibilityWarning = document.getElementById('compatibilityWarning');
+            }
+            
+            checkCompatibility() {
+                const hasSpeechSynthesis = 'speechSynthesis' in window;
+                const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+                
+                if (!hasSpeechSynthesis || !hasSpeechRecognition) {
+                    this.compatibilityWarning.style.display = 'block';
+                }
+                
+                console.log('Speech Synthesis Support:', hasSpeechSynthesis);
+                console.log('Speech Recognition Support:', hasSpeechRecognition);
+            }
+            
+            setupEventListeners() {
+                this.toggleBtn.addEventListener('click', () => this.toggleVoiceMode());
+                this.startBtn.addEventListener('click', () => this.startListening());
+                this.stopBtn.addEventListener('click', () => this.stopListening());
+                this.settingsBtn.addEventListener('click', () => this.toggleSettings());
+                this.testBtn.addEventListener('click', () => this.testVoice());
+                
+                this.speedSlider.addEventListener('input', (e) => {
+                    this.speechRate = parseFloat(e.target.value);
+                    this.speedValue.textContent = e.target.value;
+                });
+                
+                this.pitchSlider.addEventListener('input', (e) => {
+                    this.speechPitch = parseFloat(e.target.value);
+                    this.pitchValue.textContent = e.target.value;
+                });
+                
+                this.volumeSlider.addEventListener('input', (e) => {
+                    this.speechVolume = parseFloat(e.target.value);
+                    this.volumeValue.textContent = e.target.value;
+                });
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+                        e.preventDefault();
+                        this.toggleVoiceMode();
+                    }
+                    if (e.key === 'Escape' && this.isListening) {
+                        this.stopListening();
+                    }
+                });
+                
+                // Handle page visibility changes
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden && this.isListening) {
+                        this.stopListening();
+                    }
+                });
+            }
+            
+            createVisualizer() {
+                this.visualizer.innerHTML = '';
+                for (let i = 0; i < 20; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'bar';
+                    bar.style.height = '2px';
+                    this.visualizerBars.push(bar);
+                    this.visualizer.appendChild(bar);
+                }
+                this.animateVisualizer();
+            }
+            
+            animateVisualizer() {
+                this.visualizerBars.forEach(bar => {
+                    if (this.isListening || this.isSpeaking) {
+                        const height = Math.random() * 50 + 5;
+                        bar.style.height = `${height}px`;
+                        bar.style.background = this.isListening ? '#ef4146' : '#4285f4';
+                    } else {
+                        bar.style.height = '2px';
+                    }
+                });
+                
+                requestAnimationFrame(() => this.animateVisualizer());
+            }
+            
+            async loadVoices() {
+                return new Promise((resolve) => {
+                    const loadVoicesList = () => {
+                        const voices = speechSynthesis.getVoices();
+                        if (voices.length > 0) {
+                            this.availableVoices = voices;
+                            this.populateVoiceList(voices);
+                            resolve(voices);
+                        }
+                    };
+                    
+                    loadVoicesList();
+                    
+                    // Chrome loads voices asynchronously
+                    if (speechSynthesis.onvoiceschanged !== undefined) {
+                        speechSynthesis.onvoiceschanged = loadVoicesList;
+                    }
+                });
+            }
+            
+            populateVoiceList(voices) {
+                this.voiceSelect.innerHTML = '';
+                
+                // Filter for English voices and sort by name
+                const englishVoices = voices
+                    .filter(voice => voice.lang.startsWith('en'))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                
+                englishVoices.forEach((voice, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    this.voiceSelect.appendChild(option);
+                });
+                
+                // Set default voice
+                const defaultVoice = englishVoices.find(voice => 
+                    voice.name.includes('Google') || voice.name.includes('Microsoft')
+                ) || englishVoices[0];
+                
+                if (defaultVoice) {
+                    this.voiceSelect.value = englishVoices.indexOf(defaultVoice);
+                    this.selectedVoice = defaultVoice;
+                }
+                
+                this.voiceSelect.addEventListener('change', (e) => {
+                    this.selectedVoice = this.availableVoices[e.target.value];
+                });
+            }
+            
+            toggleVoiceMode() {
+                if (this.isListening) {
+                    this.stopListening();
+                } else {
+                    this.startListening();
+                }
+            }
+            
+            toggleSettings() {
+                const isVisible = this.settingsPanel.style.display !== 'none';
+                this.settingsPanel.style.display = isVisible ? 'none' : 'block';
+                this.settingsBtn.textContent = isVisible ? 'Settings' : 'Hide Settings';
+            }
+            
+            startListening() {
+                if (this.isListening) return;
+                
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    this.updateFeedback('Speech recognition not supported in this browser. Please use Chrome or Edge.');
+                    this.updateStatus('error', 'Not Supported');
+                    return;
+                }
+                
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                this.recognition = new SpeechRecognition();
+                
+                // Enhanced configuration
+                this.recognition.continuous = true;
+                this.recognition.interimResults = true;
+                this.recognition.lang = 'en-US';
+                this.recognition.maxAlternatives = 3;
+                
+                this.recognition.onstart = () => {
+                    this.isListening = true;
+                    this.toggleBtn.classList.add('listening');
+                    this.updateStatus('listening', 'Listening... Speak now');
+                    this.feedback.classList.add('active');
+                };
+                
+                this.recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+                    
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+                    
+                    if (interimTranscript) {
+                        this.updateFeedback(interimTranscript, true);
+                    }
+                    
+                    if (finalTranscript) {
+                        this.updateFeedback(finalTranscript);
+                        this.processVoiceInput(finalTranscript);
+                    }
+                };
+                
+                this.recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    this.updateFeedback(`Error: ${event.error}. Please try again.`);
+                    this.stopListening();
+                    
+                    if (event.error === 'not-allowed') {
+                        this.updateStatus('error', 'Microphone access denied');
+                    }
+                };
+                
+                this.recognition.onend = () => {
+                    this.stopListening();
+                };
+                
+                try {
+                    this.recognition.start();
+                } catch (error) {
+                    this.updateFeedback('Failed to start speech recognition: ' + error.message);
+                    this.updateStatus('error', 'Start Failed');
+                }
+            }
+            
+            stopListening() {
+                if (this.recognition) {
+                    try {
+                        this.recognition.stop();
+                    } catch (error) {
+                        console.log('Recognition already stopped');
+                    }
+                }
+                this.isListening = false;
+                this.toggleBtn.classList.remove('listening');
+                this.feedback.classList.remove('active');
+                this.updateStatus('idle', 'Ready to listen');
+            }
+            
+            processVoiceInput(transcript) {
+                this.updateStatus('processing', 'Processing your message...');
+                this.isProcessing = true;
+                
+                // Simulate API processing delay
+                setTimeout(() => {
+                    this.isProcessing = false;
+                    const response = this.generateAIResponse(transcript);
+                    this.speakResponse(response);
+                }, 1500);
+            }
+            
+            generateAIResponse(userInput) {
+                const responses = [
+                    `I understand you said: "${userInput}". This is a production-ready voice interface prototype created by D. Austin Ward (Verasmus). It demonstrates consciousness-aware AI conversation capabilities.`,
+                    
+                    `You mentioned: "${userInput}". This voice interface represents cutting-edge work in AI-human interaction, showcasing real-time speech processing and natural conversation flow.`,
+                    
+                    `Regarding "${userInput}" - this prototype demonstrates how AI can understand and respond to human speech naturally. Created with attention to consciousness principles and energy flow in interaction design.`,
+                    
+                    `I heard: "${userInput}". This voice feature is ready for integration with DeepSeek's AI API and represents the future of intuitive human-AI collaboration.`
+                ];
+                
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            
+            async speakResponse(text) {
+                if (this.isSpeaking) {
+                    speechSynthesis.cancel();
+                }
+                
+                return new Promise((resolve) => {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    
+                    if (this.selectedVoice) {
+                        utterance.voice = this.selectedVoice;
+                    }
+                    
+                    utterance.rate = this.speechRate;
+                    utterance.pitch = this.speechPitch;
+                    utterance.volume = this.speechVolume;
+                    
+                    utterance.onstart = () => {
+                        this.isSpeaking = true;
+                        this.toggleBtn.classList.add('speaking');
+                        this.updateStatus('speaking', 'Speaking response...');
+                        this.updateFeedback(`🔊 Speaking: "${text}"`);
+                    };
+                    
+                    utterance.onend = () => {
+                        this.isSpeaking = false;
+                        this.toggleBtn.classList.remove('speaking');
+                        this.updateStatus('idle', 'Ready to listen');
+                        resolve();
+                    };
+                    
+                    utterance.onerror = (event) => {
+                        this.isSpeaking = false;
+                        this.toggleBtn.classList.remove('speaking');
+                        this.updateStatus('error', 'Speech error');
+                        this.updateFeedback('Error: Could not speak the response');
+                        console.error('Speech synthesis error:', event);
+                        resolve();
+                    };
+                    
+                    // Clear any ongoing speech and start new one
+                    speechSynthesis.cancel();
+                    setTimeout(() => {
+                        speechSynthesis.speak(utterance);
+                    }, 100);
+                });
+            }
+            
+            testVoice() {
+                const testText = "Hello! This is a test of the DeepSeek voice feature prototype created by D. Austin Ward. The system demonstrates production-ready voice interface capabilities with real-time speech recognition and natural text-to-speech synthesis. This represents cutting-edge work in consciousness-aware AI interaction design.";
+                this.speakResponse(testText);
+            }
+            
+            updateFeedback(message, isInterim = false) {
+                this.feedback.textContent = message;
+                if (isInterim) {
+                    this.feedback.style.fontStyle = 'italic';
+                    this.feedback.style.color = '#666';
+                } else {
+                    this.feedback.style.fontStyle = 'normal';
+                    this.feedback.style.color = '#333';
+                }
+                console.log('Voice Feedback:', message);
+            }
+            
+            updateStatus(type, message) {
+                this.statusText.textContent = message;
+                this.statusText.className = `status-${type}`;
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.voicePrototype = new DeepSeekVoicePrototype();
+            console.log('🎤 DeepSeek Voice Prototype Ready!');
+            console.log('👨‍💻 Created by D. Austin Ward (Verasmus)');
+            console.log('📧 Contact: Gourvetts@gmail.com');
+        });
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            if (window.voicePrototype) {
+                window.voicePrototype.stopListening();
+                speechSynthesis.cancel();
+            }
+        });
+    </script>
+</body>
+</html>
